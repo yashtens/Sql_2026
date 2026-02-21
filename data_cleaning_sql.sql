@@ -180,10 +180,121 @@ set Cpu_processor=
  ;
  alter table laptopdata
  modify Cpu_frequency decimal(10);
- select * from laptopdata
+ select * from laptopdata;
  
+ -- today 18-02-2026
+ use data_cleaning;
+ select * from laptopdata;
  
+ select substring_index(substring_index(ScreenResolution,' ',-1),'x',1) as 'a1',
+ substring_index(substring_index(ScreenResolution,' ',-1),'x',-1) as 'a2'
+ from laptopdata;
+ 
+ alter table laptopdata
+ add column resolution_width integer after ScreenResolution,
+ add column resolution_height integer after resolution_width;
+ 
+ update laptopdata
+ set resolution_width=substring_index(substring_index(ScreenResolution,' ',-1),'x',1);
+ 
+ update laptopdata set resolution_height=substring_index(substring_index(ScreenResolution,' ',-1),'x',-1)
+ ;
+ 
+ alter table laptopdata
+ drop column Touch_screen;
+ alter table laptopdata
+ add column Touch_screen integer after resolution_height;
+ select ScreenResolution like '%Touch%'
+ from laptopdata;
 
+select * from laptopdata;
+alter table laptopdata
+drop column ScreenResolution
+;
 
+ update laptopdata set Touch_screen=ScreenResolution like '%Touch%';
+ select distinct(Cpu_processor)
+from laptopdata;
 
+alter table laptopdata
+add column Memory_size integer after Ram;
+update laptopdata
+set Memory_size=substring_index(Memory,' ',1);
+
+select substring_index(Memory,' ',1) from laptopdata;
+
+use data_cleaning;
+select * from laptopdata;
+
+alter table laptopdata
+add column memory_type varchar(255) after Memory,
+add column primary_storage integer after memory_type ,
+add column secondary_storage integer after primary_storage;
+alter table laptopdata
+drop column Memory_size;
+
+select distinct(Memory) from laptopdata;
+select Memory,
+case 
+when Memory like '%SSD%' and Memory like '%HDD%' then 'Hybrid'
+when Memory like '%SSD%' then 'SSD'
+when Memory like '%HDD%' then 'HDD'
+when Memory like '%Flash Storage%'  then 'Flash Storage'
+when Memory like '%Hybrid%' then 'Hybrid'
+when Memory like '%Flash Storage%' and Memory like '%HDD%' then 'Hybrid'
+when Memory like '%Flash Storage%' and Memory like '%SSD%' then 'Hybrid'
+else 'other'
+ end as 'modification'
+from laptopdata;
+
+update laptopdata
+set memory_type=
+case 
+when Memory like '%SSD%' and Memory like '%HDD%' then 'Hybrid'
+when Memory like '%SSD%' then 'SSD'
+when Memory like '%HDD%' then 'HDD'
+when Memory like '%Flash Storage%'  then 'Flash Storage'
+when Memory like '%Hybrid%' then 'Hybrid'
+when Memory like '%Flash Storage%' and Memory like '%HDD%' then 'Hybrid'
+when Memory like '%Flash Storage%' and Memory like '%SSD%' then 'Hybrid'
+else 'other'
+end ;
+
+select * from laptopdata;
+select Memory from laptopdata;
+
+select regexp_substr(substring_index(Memory,'+',1),'[0-9]+'),
+case when Memory like '%+%' then substring_index(Memory,'+',-1) else 0 end 
+from laptopdata;
+
+update laptopdata
+set primary_storage =regexp_substr(substring_index(Memory,'+',1),'[0-9]+')
+
+;
+update laptopdata
+set secondary_storage =case when Memory like '%+%' then regexp_substr(substring_index(Memory,'+',-1),'[0-9]+') else 0 end ;
+
+select * from laptopdata;
+
+alter table laptopdata
+drop column Memory;
+
+select primary_storage,
+case
+when secondary_storage <=2 then primary_storage*1024 else primary_storage end
+from laptopdata;
+
+update laptopdata
+set secondary_storage =case
+when secondary_storage <=2 then secondary_storage*1024 else secondary_storage end;
+
+select * from laptopdata;
+select primary_storage,
+case
+when secondary_storage <=2 then secondary_storage*1024 else secondary_storage end
+from laptopdata;
+
+alter table laptopdata
+drop column gpu_brand
+;
 
